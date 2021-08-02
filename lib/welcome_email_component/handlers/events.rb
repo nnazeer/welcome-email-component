@@ -1,12 +1,10 @@
-module RegistrationComponent
+module WelcomeEmailComponent
   module Handlers
     class Events
       include Log::Dependency
       include Messaging::Handle
       include Messaging::StreamName
-      include EncodeEmailAddress
       include Messages::Events
-      include UserEmailAddress::Client::Messages::Commands
 
       dependency :write, Messaging::Postgres::Write
       dependency :clock, Clock::UTC
@@ -18,37 +16,46 @@ module RegistrationComponent
         Store.configure(self)
       end
 
-      category :registration
+      category :welcome_email
 
       handle Initiated do |initiated|
-        claim_id = initiated.claim_id
-        user_id = initiated.user_id
-        email_address = initiated.email_address
-        encoded_email_address = encode_email_address(email_address)
+        registration_id = initiated.registration_id
 
-        time = clock.iso8601
+        welcome_email, version = store.fetch(registration_id, include: :version)
 
-        claim = Claim.new
-        claim.metadata.follow(initiated.metadata)
+        if welcome_email.started_two_phase_commit?
+          logger.info(tag: :ignored) { "Event ignored (Event: #{initiated.message_type}, Registration ID: #{registration_id}, User ID: #{initiated.user_id})" }
+          return
+        end
 
-        claim.claim_id = claim_id
-        claim.encoded_email_address = encoded_email_address
-        claim.email_address = email_address
-        claim.user_id = user_id
-        claim.time = time
+        stream_name = stream_name(registration_id)
 
-        stream_name = "userEmailAddress:command-#{encoded_email_address}"
+        started = Started.follow(initiated, exclude: :time)
+        started.time = clock.iso8601
 
-        write.(claim, stream_name)
+        write.(started, stream_name, expected_version: version)
+
+        # Send Email
+
+        if version == :no_stream
+          next_version = 1
+        else
+          next_version = version + 1
+        end
+
+        completed = Completed.follow(started, exclude: :time)
+        completed.time = clock.iso8601
+
+        write.(completed, stream_name, expected_version: next_version)
       end
 
-      handle EmailAccepted do |email_accepted|
-        registration_id = email_accepted.registration_id
+      handle Completed do |completed|
+        registration_id = completed.registration_id
 
-        registration, version = store.fetch(registration_id, include: :version)
+        welcome_email, version = store.fetch(registration_id, include: :version)
 
-        if registration.registered?
-          logger.info(tag: :ignored) { "Event ignored (Event: #{email_accepted.message_type}, Registration ID: #{registration_id}, User ID: #{email_accepted.user_id})" }
+        if welcome_email.sent?
+          logger.info(tag: :ignored) { "Event ignored (Event: #{completed.message_type}, Registration ID: #{registration_id}, User ID: #{completed.user_id})" }
           return
         end
 
@@ -56,34 +63,10 @@ module RegistrationComponent
 
         stream_name = stream_name(registration_id)
 
-        registered = Registered.follow(email_accepted, exclude: [
-          :processed_time
-        ])
-        registered.time = time
+        sent = Sent.follow(completed)
+        sent.processed_time = time
 
-        write.(registered, stream_name, expected_version: version)
-      end
-
-      handle EmailRejected do |email_rejected|
-        registration_id = email_rejected.registration_id
-
-        registration, version = store.fetch(registration_id, include: :version)
-
-        if registration.cancelled?
-          logger.info(tag: :ignored) { "Event ignored (Event: #{email_rejected.message_type}, Registration ID: #{registration_id}, User ID: #{email_rejected.user_id})" }
-          return
-        end
-
-        time = clock.iso8601
-
-        stream_name = stream_name(registration_id)
-
-        cancelled = Cancelled.follow(email_rejected, exclude: [
-          :processed_time
-        ])
-        cancelled.time = time
-
-        write.(cancelled, stream_name, expected_version: version)
+        write.(sent, stream_name, expected_version: version)
       end
     end
   end
