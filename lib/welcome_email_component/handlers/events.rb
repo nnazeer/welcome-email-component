@@ -9,11 +9,18 @@ module WelcomeEmailComponent
       dependency :write, Messaging::Postgres::Write
       dependency :clock, Clock::UTC
       dependency :store, Store
+      dependency :smtp_email, SMTP::Email
 
       def configure
         Messaging::Postgres::Write.configure(self)
         Clock::UTC.configure(self)
         Store.configure(self)
+
+        welcome_email_component_settings = Settings.instance
+        smtp_settings_data = welcome_email_component_settings.data.dig("welcome_email_component", "smtp")
+        settings = ::Settings.build(smtp_settings_data)
+
+        SMTP::Email.configure(self, settings: settings)
       end
 
       category :welcome_email
@@ -28,6 +35,11 @@ module WelcomeEmailComponent
           return
         end
 
+        email_address = initiated.email_address
+        from = "sender@example.com"
+        subject = "Welcome!"
+        body = "Welcome to the application!"
+
         stream_name = stream_name(registration_id)
 
         started = Started.follow(initiated, exclude: :time)
@@ -35,7 +47,7 @@ module WelcomeEmailComponent
 
         write.(started, stream_name, expected_version: version)
 
-        # Send Email
+        smtp_email.(email_address, from, subject, body)
 
         if version == :no_stream
           next_version = 1

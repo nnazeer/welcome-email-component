@@ -1,7 +1,7 @@
 require_relative './automated_init'
 
 context "Database Connection" do
-  session = MessageStore::Postgres::Session.build
+  session = Session.build
 
   refute(session.connected?)
 

@@ -2,4 +2,4 @@
 Gemfile.lock
 *.gem
 gems
-settings/message_store_postgres.json
+settings/welcome_email_component.json

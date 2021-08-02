@@ -1,6 +1,10 @@
 require 'eventide/postgres'
 
 require 'registration/client'
+require 'smtp/email'
+
+require 'welcome_email_component/settings'
+require 'welcome_email_component/session'
 
 require 'welcome_email_component/load'
 
