@@ -1,0 +1,1 @@
+require 'eventide/postgres'
