@@ -5,6 +5,6 @@ require_relative '../init'
 require 'component_host'
 
 ComponentHost.start('welcome-email-component') do |host|
-  welcome_email_component_initiator = RegistrationComponent::Start.build
+  welcome_email_component_initiator = WelcomeEmailComponent::Start.build
   host.register(welcome_email_component_initiator)
 end

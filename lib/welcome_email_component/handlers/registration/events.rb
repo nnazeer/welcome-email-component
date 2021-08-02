@@ -7,14 +7,16 @@ module WelcomeEmailComponent
         include Messaging::StreamName
         include Messages::Events
 
+        dependency :session, Session
         dependency :write, Messaging::Postgres::Write
         dependency :clock, Clock::UTC
         dependency :store, Store
 
         def configure
-          Messaging::Postgres::Write.configure(self)
+          Session.configure(self)
+          Messaging::Postgres::Write.configure(self, session: session)
           Clock::UTC.configure(self)
-          Store.configure(self)
+          Store.configure(self, session: session)
         end
 
         category :welcome_email

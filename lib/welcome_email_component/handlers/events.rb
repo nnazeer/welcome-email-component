@@ -6,15 +6,17 @@ module WelcomeEmailComponent
       include Messaging::StreamName
       include Messages::Events
 
+      dependency :session, Session
       dependency :write, Messaging::Postgres::Write
       dependency :clock, Clock::UTC
       dependency :store, Store
       dependency :smtp_email, SMTP::Email
 
       def configure
-        Messaging::Postgres::Write.configure(self)
+        Session.configure(self)
+        Messaging::Postgres::Write.configure(self, session: session)
         Clock::UTC.configure(self)
-        Store.configure(self)
+        Store.configure(self, session: session)
 
         welcome_email_component_settings = Settings.instance
         smtp_settings_data = welcome_email_component_settings.data.dig("welcome_email_component", "smtp")

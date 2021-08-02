@@ -14,3 +14,8 @@ require 'welcome_email_component/store'
 
 require 'welcome_email_component/handlers/events'
 require 'welcome_email_component/handlers/registration/events'
+
+require 'welcome_email_component/consumers/events'
+require 'welcome_email_component/consumers/registration/events'
+
+require 'welcome_email_component/start'
