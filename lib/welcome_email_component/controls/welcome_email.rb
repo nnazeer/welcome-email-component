@@ -4,22 +4,10 @@ module WelcomeEmailComponent
       def self.example
         welcome_email = WelcomeEmailComponent::WelcomeEmail.build
 
-        welcome_email.id = id
+        welcome_email.id = Registration.id
         welcome_email.initiated_time = Time::Effective::Raw.example
 
         welcome_email
-      end
-
-      def self.id
-        ID.example(increment: id_increment)
-      end
-
-      def self.id_increment
-        11
-      end
-
-      def self.email_address
-        "jane@example.com"
       end
 
       module New
