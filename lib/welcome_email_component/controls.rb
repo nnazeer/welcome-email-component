@@ -3,6 +3,7 @@ require 'identifier/uuid/controls'
 
 require 'welcome_email_component/controls/id'
 require 'welcome_email_component/controls/time'
+require 'welcome_email_component/controls/version'
 
 require 'welcome_email_component/controls/events/initiated'
 require 'welcome_email_component/controls/events/started'
