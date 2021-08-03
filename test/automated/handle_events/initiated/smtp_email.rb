@@ -34,7 +34,7 @@ context "Handle Events" do
 
         test "Subject" do
           sent = smtp_email.sent? do |to, from, subject|
-            subject = "Welcome!"
+            subject == "Welcome!"
           end
 
           assert(sent)
